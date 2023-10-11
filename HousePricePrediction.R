@@ -76,10 +76,19 @@ D_clean2 =D_clean[cooksd <= cook_threshold, ]
 dim(D_clean2)
 boxplot(D_clean2$Price,main="fig 3")
 updated_data2=D_clean2
-
 View(updated_data2)
 
 
+############################    Variable selection method
+library(leaps)
+breg_full = regsubsets(Price ~ .-Location, data = updated_data2,really.big = T,nvmax =38 )
+breg_summary = summary(breg_full)
+breg_summary$rsq
+par(mfrow=c(2,2))
+plot(breg_summary$rsq,main="R-squred Plot",xlab="No of Variables",ylab="R-square Values",type="l",xlim=c(0,40))
+plot(breg_summary$cp,main="cp plot",xlab="No of Variables",ylab="Cp Values",type="l",xlim=c(0,40))
+plot(breg_summary$bic,main="BIC Plot",xlab="No of Variables",ylab="BIC Values",type="l",xlim=c(0,40))
+plot(breg_summary$adjr2,main="adj R-squred Plot",xlab="No of Variables",ylab="adj R-square Values",type="l",xlim=c(0,40))
 
 
 
@@ -107,7 +116,7 @@ View(updated_data3)
 
 summary(lm(D_clean2$Price~.,data = updated_data3))
 
-############### k folds 
+############### Multiple Linear Regrssion
 n=nrow(updated_data_var)
 outputmatrix=matrix(,nrow=4,ncol=2)
 k=5
@@ -126,8 +135,8 @@ for(i in 1:k)
   Predictor_1=predict(M1,newdata=validation_data)
   Validaton_vector[i]=mean((validation_data$Price-Predictor_1)^2)
 }
-outputmatrix[1,1]=mean(Train_vector)
-outputmatrix[1,2]=mean(Validaton_vector)
+outputmatrix[1,1]=mean(Validaton_vector)
+outputmatrix[1,2]=cor(Predictor_1,validation_data$Price)
 outputmatrix
 plot(Predictor_1,validation_data$Price)
 
@@ -148,14 +157,15 @@ for(i in 1:k)
   Predictor_2=predict(M2,newdata=validation_data1)
   Validaton_vector1[i]=mean((validation_data1$Price-Predictor_2)^2)
 }
-outputmatrix[2,1]=mean(Train_vector1)
-outputmatrix[2,2]=mean(Validaton_vector1)
+outputmatrix[2,1]=mean(Validation_vector1)
+outputmatrix[2,2]=cor(Predictor_2,validation_data2$Price)
 outputmatrix
 (M2$variable.importance)
 rpart.plot(M2)
 plot(Predictor_2,validation_data1$Price)
 abline(0,1)
-###################  Random forest (k folds)
+
+###################  Random forest 
 
 library(randomForest)
 randomForest_sample=sample(1:n1,size=n1/3,replace = FALSE)
@@ -166,8 +176,8 @@ MSE_Train=mean((train_data_forest$Price-(predict(M3,newdata=train_data_forest)))
 Predictor_forest=predict(M3,newdata=validation_data_forest)
 MSE_Validation=mean((validation_data_forest$Price-Predictor_forest)^2)
 
-outputmatrix[3,1]=(MSE_Train)
-outputmatrix[3,2]=(MSE_Validation)
+outputmatrix[3,1]=(MSE_Validation)
+outputmatrix[3,2]=cor(Predictor_forest,validation_data_forest$Price)
 outputmatrix
 
 
@@ -183,8 +193,8 @@ MSE_Train_knn=mean((train_data_knn$Price-(predict(model_knn,newdata=train_data_k
 Predictor_4=predict(model_knn,newdata=validation_data_knn)
 MSE_val_knn=mean((validation_data_knn$Price-Predictor_4)^2)
 
-outputmatrix[4,1]=MSE_Train_knn
-outputmatrix[4,2]=MSE_val_knn
+outputmatrix[4,1]=MSE_val_knn
+outputmatrix[4,2]=cor(Predictoe_4,validation_data_knn$Price)
 outputmatrix
 plot(model_knn)
 qqnorm(Predictor_4-validation_data_knn$Price)
